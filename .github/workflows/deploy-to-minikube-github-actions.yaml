@@ -1,6 +1,11 @@
 name: Deploy to Minikube using GitHub Actions
 
-on: [push]
+on:
+  push:
+    branches:
+      - master  # or main
+  workflow_dispatch:  # This allows manual triggering
+
 
 jobs:
   job1:
