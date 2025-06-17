@@ -44,10 +44,11 @@ jobs:
         minikube service list
         minikube service nodejs-app --url
 
-    # Check the status of the pods to ensure everything is running
-    - name: Check Pods Status
+    # Ensure pods are running after deployment
+    - name: Verify Pods Are Running
       run: |
         kubectl get pods -A
+        kubectl describe pods -l app=nodejs-app -n default
 
     # Step to ensure the service is available and check its logs
     - name: Check Deployment and Pod Logs
