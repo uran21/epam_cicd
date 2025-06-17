@@ -1,32 +1,28 @@
 name: Deploy to Minikube using GitHub Actions
 
-on:
-  push:
-    branches:
-      - master  # This triggers the workflow on push to the master branch
-  workflow_dispatch:  # Allows manual triggering
+on: [push]
 
 jobs:
   job1:
     runs-on: ubuntu-latest
-    name: Build Node.js Docker Image and deploy to Minikube
+    name: build Node.js Docker Image and deploy to minikube
     steps:
-      - uses: actions/checkout@v2
-      - name: Start Minikube
-        uses: medyagh/setup-minikube@master
-      - name: Try the cluster!
-        run: kubectl get pods -A
-      - name: Build Docker image
-        run: |
+    - uses: actions/checkout@v2
+    - name: Start minikube
+      uses: medyagh/setup-minikube@master
+    - name: Try the cluster !
+      run: kubectl get pods -A
+    - name: Build image
+      run: |
           export SHELL=/bin/bash
           eval $(minikube -p minikube docker-env)
           docker build -f ./Dockerfile -t devopshint/node-app:latest .
-          echo -n "Verifying images:"
+          echo -n "verifying images:"
           docker images
-      - name: Deploy to Minikube
-        run:
-          kubectl apply -f k8s-node-app.yaml
-      - name: Test service URLs
-        run: |
+    - name: Deploy to minikube
+      run:
+        kubectl apply -f k8s-node-app.yaml
+    - name: Test service URLs
+      run: |
           minikube service list
           minikube service nodejs-app --url
