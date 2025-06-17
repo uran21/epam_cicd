@@ -30,7 +30,14 @@ jobs:
     - name: Verify Docker Image in Minikube
       run: |
         eval $(minikube -p minikube docker-env)
-        docker images | grep "devopshint/node-app:latest"
+        # Retry checking for the image to ensure it is available
+        for i in {1..5}; do
+          docker images | grep "devopshint/node-app:latest" && exit 0
+          echo "Retrying in 3 seconds..."
+          sleep 3
+        done
+        echo "Docker image not found after 5 retries."
+        exit 1
     
     # Step to deploy the application to Minikube
     - name: Deploy to Minikube
