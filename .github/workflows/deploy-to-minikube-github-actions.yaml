@@ -7,63 +7,43 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Node.js Docker Image and Deploy to Minikube
     steps:
-    - uses: actions/checkout@v2
-    
-    # Step to set up Minikube
+    - uses: actions/checkout@v2  # Checkout the repository code
+
+    # Step to start Minikube
     - name: Start Minikube
       uses: medyagh/setup-minikube@master
       id: minikube
-    - name: Check Minikube Status
-      run: |
-        minikube status
 
-    # Step to build Docker image inside Minikube's Docker environment
-    - name: Build Docker Image
+    # Add a step to wait for Minikube to be fully initialized
+    - name: Wait for Minikube to be ready
+      run: |
+        while ! minikube status | grep -q 'host: Running'; do
+          echo "Waiting for Minikube to be ready..."
+          sleep 5
+        done
+        echo "Minikube is ready!"
+
+    # Test Minikube cluster status
+    - name: Try the cluster!
+      run: kubectl get pods -A
+
+    # Build Docker image locally within Minikube's Docker environment
+    - name: Build image inside Minikube
       run: |
         export SHELL=/bin/bash
-        eval $(minikube -p minikube docker-env)
-        docker build -f ./Dockerfile -t devopshint/node-app:latest .
-        echo -n "Verifying images:"
-        docker images
+        eval $(minikube -p minikube docker-env)  # Configure Docker to use Minikube's Docker daemon
+        docker build -f ./Dockerfile -t devopshint/node-app:latest .  # Build the image in Minikube's Docker environment
+        echo -n "Verifying images: "
+        docker images  # Verify that the image is built
 
-    # Check if the image is listed in Minikube's Docker environment
-    - name: Verify Docker Image in Minikube
-      run: |
-        eval $(minikube -p minikube docker-env)
-        # Retry checking for the image to ensure it is available
-        for i in {1..5}; do
-          docker images | grep "devopshint/node-app:latest" && exit 0
-          echo "Retrying in 3 seconds..."
-          sleep 3
-        done
-        echo "Docker image not found after 5 retries."
-        exit 1
-    
-    # Step to deploy the application to Minikube
+    # Deploy the application to Minikube
     - name: Deploy to Minikube
       run: |
         kubectl apply -f k8s-node-app.yaml
-        kubectl rollout status deployment/nodejs-app
-    
-    # Step to list services and verify the service is reachable
-    - name: Test Service URLs
+        kubectl rollout status deployment/nodejs-app  # Wait for the deployment to be ready
+
+    # Test the service and get the URL
+    - name: Test service URLs
       run: |
         minikube service list
-        minikube service nodejs-app --url
-
-    # Ensure pods are running after deployment
-    - name: Verify Pods Are Running
-      run: |
-        kubectl get pods -A
-        kubectl describe pods -l app=nodejs-app -n default
-
-    # Step to ensure the service is available and check its logs
-    - name: Check Deployment and Pod Logs
-      run: |
-        kubectl describe deployment nodejs-app -n default
-        kubectl logs -l app=nodejs-app -n default
-
-    # Final check to ensure the service URL is accessible
-    - name: Final Service Check
-      run: |
-        minikube service nodejs-app --url
+        minikube service nodejs-app --url  # Get the URL for the Node.js app running in Minikube
