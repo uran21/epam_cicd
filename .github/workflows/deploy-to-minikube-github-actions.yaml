@@ -32,9 +32,20 @@ jobs:
       run: |
         export SHELL=/bin/bash
         eval $(minikube -p minikube docker-env)  # Configure Docker to use Minikube's Docker daemon
+        sleep 5  # Ensure Minikube's Docker environment is fully set up
         docker build -f ./Dockerfile -t devopshint/node-app:latest .  # Build the image in Minikube's Docker environment
-        echo -n "Verifying images: "
-        docker images  # Verify that the image is built
+        docker images  # Verify the image is built
+
+    # Retry mechanism to check if the image is available
+    - name: Retry checking for Docker image
+      run: |
+        for i in {1..10}; do
+          docker images | grep "devopshint/node-app:latest" && exit 0
+          echo "Retrying in 5 seconds..."
+          sleep 5  # Increased delay between retries
+        done
+        echo "Docker image not found after 10 retries."
+        exit 1
 
     # Deploy the application to Minikube
     - name: Deploy to Minikube
